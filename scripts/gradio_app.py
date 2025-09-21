@@ -929,16 +929,15 @@ def update_visualization(
         f"glbscene_{frame_filter.replace('.', '_').replace(':', '').replace(' ', '_')}_cam{show_cam}_mesh{show_mesh}_black{filter_black_bg}_white{filter_white_bg}.glb",
     )
 
-    
     glbscene = predictions_to_glb(
-            predictions,
-            filter_by_frames=frame_filter,
-            show_cam=show_cam,
-            mask_black_bg=filter_black_bg,
-            mask_white_bg=filter_white_bg,
-            as_mesh=show_mesh,
-            conf_percentile=conf_thres,
-        )
+        predictions,
+        filter_by_frames=frame_filter,
+        show_cam=show_cam,
+        mask_black_bg=filter_black_bg,
+        mask_white_bg=filter_white_bg,
+        as_mesh=show_mesh,
+        conf_percentile=conf_thres,
+    )
     glbscene.export(file_obj=glbfile)
 
     return (
@@ -1583,4 +1582,30 @@ with gr.Blocks(theme=theme, css=GRADIO_CSS) as demo:
     # -------------------------------------------------------------------------
     gr.HTML(get_acknowledgements_html())
 
-    demo.queue(max_size=20).launch(show_error=True, share=True, ssr_mode=False)
+    import argparse
+
+    if __name__ == "__main__":
+        parser = argparse.ArgumentParser(description="Launch MapAnything Gradio App")
+        parser.add_argument(
+            "--port", type=int, default=7860, help="Port to run the Gradio app on."
+        )
+        parser.add_argument(
+            "--host",
+            type=str,
+            default="0.0.0.0",
+            help="Host to run the Gradio app on. Use 0.0.0.0 to expose to other computers.",
+        )
+        parser.add_argument(
+            "--share", action="store_true", help="Enable public sharing via Gradio."
+        )
+        args = parser.parse_args()
+
+        demo.queue(max_size=20).launch(
+            show_error=True,
+            share=args.share,
+            ssr_mode=False,
+            server_port=args.port,
+            server_name=args.host,
+        )
+    else:
+        demo.queue(max_size=20).launch(show_error=True, share=True, ssr_mode=False)
