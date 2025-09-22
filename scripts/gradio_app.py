@@ -36,6 +36,7 @@ from mapanything.utils.hf_utils.css_and_html import (
 from mapanything.utils.hf_utils.hf_helpers import initialize_mapanything_model
 from mapanything.utils.hf_utils.viz import predictions_to_glb
 from mapanything.utils.image import load_images, rgb
+import json
 
 register_heif_opener()
 
@@ -1083,6 +1084,43 @@ def load_example_scene(scene_name, examples_dir="examples"):
 
 
 # -------------------------------------------------------------------------
+# Export camera params as JSON
+# -------------------------------------------------------------------------
+def extract_camera_params(predictions):
+    """Extract camera intrinsics and extrinsics from predictions dict."""
+    intrinsics = predictions.get("intrinsic", None)
+    extrinsics = predictions.get("extrinsic", None)
+    if intrinsics is None or extrinsics is None:
+        return None
+    camera_params = []
+    for i in range(len(intrinsics)):
+        cam = {
+            "view_index": int(i),
+            "intrinsic": np.asarray(intrinsics[i]).tolist(),
+            "extrinsic": np.asarray(extrinsics[i]).tolist(),
+        }
+        camera_params.append(cam)
+    return camera_params
+
+
+def export_camera_params(target_dir):
+    """Load predictions.npz and export camera params as JSON string."""
+    predictions_path = os.path.join(target_dir, "predictions.npz")
+    if not os.path.exists(predictions_path):
+        return None
+    loaded = np.load(predictions_path, allow_pickle=True)
+    predictions = {key: loaded[key] for key in loaded.keys()}
+    camera_params = extract_camera_params(predictions)
+    if camera_params is None:
+        return None
+    json_str = json.dumps(camera_params, indent=2)
+    out_path = os.path.join(target_dir, "camera_params.json")
+    with open(out_path, "w") as f:
+        f.write(json_str)
+    return out_path
+
+
+# -------------------------------------------------------------------------
 # 6) Build Gradio UI
 # -------------------------------------------------------------------------
 theme = get_gradio_theme()
@@ -1253,6 +1291,18 @@ with gr.Blocks(theme=theme, css=GRADIO_CSS) as demo:
                         label="Apply mask for predicted ambiguous depth classes & edges",
                         value=True,
                     )
+
+    # Add export camera params button and download file
+    with gr.Row():
+        export_btn = gr.Button("Export Camera Params as JSON", scale=1)
+        download_json = gr.File(label="Download Camera Params JSON", visible=True)
+    # Export camera params logic
+    export_btn.click(
+        fn=export_camera_params,
+        inputs=[target_dir_output],
+        outputs=[download_json],
+    )
+
     # ---------------------- Example Scenes Section ----------------------
     gr.Markdown("## Example Scenes (lists all scenes in the examples folder)")
     gr.Markdown("Click any thumbnail to load the scene for reconstruction.")
