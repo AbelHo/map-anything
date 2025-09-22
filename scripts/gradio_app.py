@@ -386,7 +386,7 @@ def handle_uploads(input_video, input_images, s_time_interval=1.0):
 
     # Create a unique folder name
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    target_dir = f"input_images_{timestamp}"
+    target_dir = f"inputs/input_images_{timestamp}"
     target_dir_images = os.path.join(target_dir, "images")
 
     # Clean up if somehow that folder already exists
